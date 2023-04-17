@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { SideBar } from './components/SideBar';
 import { Content } from './components/Content';
@@ -34,26 +34,33 @@ export function App() {
 
   const [movies, setMovies] = useState<MovieProps[]>([]);
   const [selectedGenre, setSelectedGenre] = useState<GenreResponseProps>({} as GenreResponseProps);
+  const genresMemo = useMemo(() => async () => {
+    const responseapi = await api.get<GenreResponseProps[]>('genres')
+    setGenres(responseapi.data)
+  }, [])
+  const moviesMemo = useMemo(() => async () => {
+    const response = await api.get<MovieProps[]>(`movies/?Genre_id=${selectedGenreId}`)
+    setMovies(response.data)
+
+  }, [selectedGenreId])
+  const genresIdMemo = useMemo(() => async () => {
+    const response = await api.get<GenreResponseProps>(`genres/${selectedGenreId}`)
+    setSelectedGenre(response.data)
+
+  }, [])
+  useEffect(() => {
+    genresMemo()
+
+  }, [genresMemo]);
 
   useEffect(() => {
-    api.get<GenreResponseProps[]>('genres').then(response => {
-      setGenres(response.data);
-    });
-  }, []);
+    moviesMemo()
+    genresIdMemo()
+  }, [moviesMemo, genresIdMemo]);
 
-  useEffect(() => {
-    api.get<MovieProps[]>(`movies/?Genre_id=${selectedGenreId}`).then(response => {
-      setMovies(response.data);
-    });
-
-    api.get<GenreResponseProps>(`genres/${selectedGenreId}`).then(response => {
-      setSelectedGenre(response.data);
-    })
-  }, [selectedGenreId]);
-
-  function handleClickButton(id: number) {
+  const handleClickButton = useCallback(async (id: number) => {
     setSelectedGenreId(id);
-  }
+  }, [])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'row' }}>
